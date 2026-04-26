@@ -14,6 +14,7 @@ import { GlowCard } from "../components/ui/GlowCard";
 import { Button } from "../components/ui/Button";
 import { fadeInUp, staggerContainer } from "../lib/animations";
 import { siteConfig } from "@/app/data/siteData";
+import { MagneticButton } from "../components/effects/MagneticButton";
 
 const { services } = siteConfig;
 
@@ -58,30 +59,34 @@ function ServiceCard({
         glowColor="rgba(79, 124, 255, 0.12)"
         glowIntensity={0.6}
       >
-        <div className="flex flex-col h-full">
-          {/* Icon with animation */}
-          <motion.div
-            className="relative w-12 h-12 mb-5"
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div
-              className={`absolute inset-0 bg-gradient-to-br ${gradientMap[service.icon]} rounded-xl opacity-50 group-hover:opacity-100 transition-opacity duration-300`}
-            />
-            <div className="relative z-10 w-full h-full flex items-center justify-center">
-              <Icon
-                className="w-6 h-6 text-accent transition-all duration-300 group-hover:text-neon"
-                strokeWidth={1.5}
+          <div className="flex flex-col h-full">
+            {/* Icon with animation */}
+            <div className="relative w-12 h-12 mb-5">
+              <motion.div
+                className="relative w-full h-full"
+                whileHover={{ scale: 1.1, rotate: 3 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${gradientMap[service.icon]} rounded-xl opacity-50 group-hover:opacity-100 transition-opacity duration-300`}
+                />
+                <div className="relative z-10 w-full h-full flex items-center justify-center">
+                  <Icon
+                    className="w-6 h-6 text-accent transition-all duration-300 group-hover:text-neon"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                {/* Glow effect behind icon */}
+                <div className="absolute inset-0 bg-accent/20 blur-xl rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </motion.div>
+              {/* Animated ring on hover */}
+              <motion.div
+                className="absolute inset-0 rounded-xl border border-accent/30 pointer-events-none"
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileHover={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
               />
             </div>
-            {/* Animated ring on hover */}
-            <motion.div
-              className="absolute inset-0 rounded-xl border border-accent/30"
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileHover={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-            />
-          </motion.div>
 
           {/* Title */}
           <h3 className="text-text-primary text-xl font-semibold mb-3 group-hover:text-accent transition-colors duration-300">
@@ -93,15 +98,17 @@ function ServiceCard({
             {service.description}
           </p>
 
-          {/* Learn More Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="group/btn self-start -ml-3 text-text-muted hover:text-accent"
-          >
-            Learn More
-            <ArrowRight className="w-4 h-4 ml-2 transition-transform duration-300 group-hover/btn:translate-x-1" />
-          </Button>
+            {/* Learn More Button */}
+            <MagneticButton strength={0.15} className="self-start">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="group/btn text-text-muted hover:text-accent"
+              >
+                Learn More
+                <ArrowRight className="w-4 h-4 ml-2 transition-transform duration-300 group-hover/btn:translate-x-1" />
+              </Button>
+            </MagneticButton>
         </div>
       </GlowCard>
     </motion.div>
@@ -164,22 +171,24 @@ export function Services() {
         ))}
       </div>
 
-        {/* Bottom CTA */}
-        <motion.div
-          className="mt-16 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <p className="text-text-muted mb-6">
-            Need a custom solution? Let&apos;s discuss your requirements.
-          </p>
+      {/* Bottom CTA */}
+      <motion.div
+        className="mt-16 text-center"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-50px" }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        <p className="text-text-muted mb-6">
+          Need a custom solution? Let&apos;s discuss your requirements.
+        </p>
+        <MagneticButton strength={0.2}>
           <Button variant="secondary" size="lg">
             Get in Touch
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
-        </motion.div>
+        </MagneticButton>
+      </motion.div>
       </div>
     </section>
   );

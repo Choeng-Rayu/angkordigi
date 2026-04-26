@@ -1,13 +1,46 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { motion, useInView } from "framer-motion";
 import { ArrowRight, ArrowDown } from "lucide-react";
-import { ParticleCanvas } from "../components/ui/ParticleCanvas";
 import { Button } from "../components/ui/Button";
 import { StatCounter } from "../components/ui/StatCounter";
 import { cn } from "../../lib/utils";
 import { siteConfig } from "@/app/data/siteData";
+import { TextScramble } from "../components/effects/TextScramble";
+import { MagneticButton } from "../components/effects/MagneticButton";
+import { FloatingElement } from "../components/effects/FloatingElement";
+
+// Dynamically import ParticleCanvas with SSR disabled
+const ParticleCanvas = dynamic(
+  () => import("../components/ui/ParticleCanvas").then((mod) => mod.ParticleCanvas),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-neon/5 animate-pulse" />
+    ),
+  }
+);
+
+// Error boundary component for WebGL/canvas failures
+function ParticleCanvasError({ children }: { children: React.ReactNode }) {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const handleError = () => setHasError(true);
+    window.addEventListener("error", handleError);
+    return () => window.removeEventListener("error", handleError);
+  }, []);
+
+  if (hasError) {
+    return (
+      <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-neon/10" />
+    );
+  }
+
+  return <>{children}</>;
+}
 
 const { hero: { tagline, subtitle, ctas, stats } } = siteConfig;
 
@@ -79,12 +112,14 @@ export function Hero() {
     >
       {/* Particle Background */}
       <div className="absolute inset-0 z-0">
-        <ParticleCanvas
-          particleCount={60}
-          connectionDistance={150}
-          particleColor="rgba(79, 124, 255, 0.6)"
-          lineColor="rgba(255, 255, 255, 0.08)"
-        />
+        <ParticleCanvasError>
+          <ParticleCanvas
+            particleCount={60}
+            connectionDistance={150}
+            particleColor="rgba(79, 124, 255, 0.6)"
+            lineColor="rgba(255, 255, 255, 0.08)"
+          />
+        </ParticleCanvasError>
       </div>
 
       {/* Gradient Overlay */}
@@ -118,14 +153,18 @@ export function Hero() {
             transition={{ delay: 0.7, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             className="mt-10 flex flex-col sm:flex-row items-center gap-4"
           >
-            <Button variant="primary" size="lg" className="group">
-              Get Started
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </Button>
-            <Button variant="ghost" size="lg" className="group">
-              View Our Work
-              <ArrowDown className="w-4 h-4 transition-transform group-hover:translate-y-1" />
-            </Button>
+            <MagneticButton strength={0.2}>
+              <Button variant="primary" size="lg" className="group">
+                {ctas[0].label}
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </MagneticButton>
+            <MagneticButton strength={0.2}>
+              <Button variant="ghost" size="lg" className="group">
+                {ctas[1].label}
+                <ArrowDown className="w-4 h-4 transition-transform group-hover:translate-y-1" />
+              </Button>
+            </MagneticButton>
           </motion.div>
         </div>
 
@@ -162,6 +201,17 @@ export function Hero() {
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Floating Decorative Elements */}
+      <FloatingElement amplitude={20} duration={6} className="absolute top-20 right-20 z-[1] pointer-events-none">
+        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-accent/20 to-neon/10 blur-2xl" />
+      </FloatingElement>
+      <FloatingElement amplitude={15} duration={5} delay={1} className="absolute bottom-40 left-10 z-[1] pointer-events-none">
+        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-neon/20 to-accent/10 blur-2xl" />
+      </FloatingElement>
+      <FloatingElement amplitude={10} duration={7} delay={0.5} className="absolute top-1/2 right-1/4 z-[1] pointer-events-none hidden lg:block">
+        <div className="w-16 h-16 border border-accent/20 rounded-lg rotate-45" />
+      </FloatingElement>
 
       {/* Bottom Gradient Fade */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent z-[1] pointer-events-none" />

@@ -12,25 +12,62 @@ import {
 import {
   Message,
   createMessage,
+  saveSessionToStorage,
+  loadSessionFromStorage,
 } from "@/app/lib/chat";
 import { siteConfig } from "@/app/data/siteData";
 
 const { chat, company } = siteConfig;
 
+// URL regex pattern
+const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+
+function parseMessageContent(content: string): React.ReactNode {
+  if (!URL_REGEX.test(content)) {
+    return content;
+  }
+  const parts = content.split(URL_REGEX);
+  const matches = content.match(URL_REGEX) || [];
+  return parts.reduce((acc: React.ReactNode[], part, i) => {
+    acc.push(part);
+    if (matches[i]) {
+      acc.push(
+        <a
+          key={i}
+          href={matches[i]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:opacity-80"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {matches[i]}
+        </a>
+      );
+    }
+    return acc;
+  }, []);
+}
+
 export default function ChatWidget() {
+  const initialSession = typeof window !== "undefined" ? loadSessionFromStorage() : null;
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(initialSession?.messages ?? []);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<"ai" | "lead">("ai");
+  const [mode, setMode] = useState<"ai" | "lead">(initialSession?.mode ?? "ai");
   const [leadStep, setLeadStep] = useState<"name" | "email" | "message" | "complete">();
-  const [leadData, setLeadData] = useState<{ name?: string; email?: string }>({});
-  const [hasShownWelcome, setHasShownWelcome] = useState(false);
+  const [leadData, setLeadData] = useState<{ name?: string; email?: string }>(initialSession?.leadData ?? {});
+  const [hasShownWelcome, setHasShownWelcome] = useState(!!initialSession);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const justOpenedRef = useRef(false);
+
+  // Save session to storage when messages/mode/leadData change
+  useEffect(() => {
+    saveSessionToStorage(messages, mode, leadData);
+  }, [messages, mode, leadData]);
 
   // Show welcome message on first open
   useEffect(() => {
@@ -129,6 +166,13 @@ export default function ChatWidget() {
     setTimeout(() => handleSend(), 100);
   };
 
+  const handleCollapsedButtonKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setIsOpen(true);
+    }
+  };
+
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString("en-US", {
       hour: "numeric",
@@ -142,10 +186,12 @@ export default function ChatWidget() {
       {/* Collapsed State - Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
+        onKeyDown={handleCollapsedButtonKeyDown}
         className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-accent text-white shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 group ${
           isOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
         }`}
         aria-label="Open chat"
+        tabIndex={0}
       >
         {/* Pulse ring */}
         <span className="absolute inset-0 rounded-full bg-accent opacity-30 animate-ping" />
@@ -157,6 +203,9 @@ export default function ChatWidget() {
       {/* Expanded State - Chat Panel */}
       <div
         ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="chat-widget-title"
         className={`fixed bottom-6 right-6 z-50 w-[350px] max-w-[calc(100vw-48px)] bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 origin-bottom-right ${
           isOpen ? "scale-100 opacity-100" : "scale-0 opacity-0 pointer-events-none"
         }`}
@@ -168,7 +217,7 @@ export default function ChatWidget() {
               <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-accent" />
               </div>
-              <span className="font-medium text-text-primary">{chat.widgetTitle}</span>
+              <span id="chat-widget-title" className="font-medium text-text-primary">{chat.widgetTitle}</span>
             </div>
           <button
             onClick={() => setIsOpen(false)}
@@ -179,8 +228,14 @@ export default function ChatWidget() {
           </button>
         </div>
 
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ height: "calc(100% - 140px)" }}>
+{/* Messages Area */}
+      <div
+        className="flex-1 overflow-y-auto p-4 space-y-4"
+        style={{ height: "calc(100% - 140px)" }}
+        aria-live="polite"
+        aria-atomic="false"
+        role="log"
+      >
           {messages.map((message, index) => (
             <div
               key={message.id}
@@ -212,7 +267,7 @@ export default function ChatWidget() {
                     : "bg-border/50 text-text-primary rounded-bl-md"
                 }`}
               >
-                {message.content}
+                {parseMessageContent(message.content)}
                 <div
                   className={`text-[10px] mt-1 opacity-50 ${
                     message.role === "user" ? "text-right" : "text-left"
@@ -236,6 +291,7 @@ export default function ChatWidget() {
                   <span className="w-2 h-2 rounded-full bg-text-muted animate-bounce" style={{ animationDelay: "150ms" }} />
                   <span className="w-2 h-2 rounded-full bg-text-muted animate-bounce" style={{ animationDelay: "300ms" }} />
                 </div>
+                <span className="sr-only">AI is typing</span>
               </div>
             </div>
           )}

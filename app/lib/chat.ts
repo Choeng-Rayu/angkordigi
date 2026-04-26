@@ -110,3 +110,99 @@ export function generateLeadCaptureResponse(step: "name" | "email" | "message" |
       return "I'd be happy to connect you with our team!";
   }
 }
+
+// Session storage utilities
+const SESSION_STORAGE_KEY = "tomnerb_chat_session";
+const SESSION_EXPIRY_MINUTES = 30;
+
+export interface SessionData {
+  messages: Message[];
+  mode: "ai" | "lead";
+  leadData: {
+    name?: string;
+    email?: string;
+  };
+  lastUpdated: string;
+}
+
+export function saveSessionToStorage(
+  messages: Message[],
+  mode: "ai" | "lead",
+  leadData: { name?: string; email?: string }
+): void {
+  if (typeof window === "undefined") return;
+  const data: SessionData = {
+    messages,
+    mode,
+    leadData,
+    lastUpdated: new Date().toISOString(),
+  };
+  sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
+}
+
+export function loadSessionFromStorage(): SessionData | null {
+  if (typeof window === "undefined") return null;
+  const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+  if (!saved) return null;
+  try {
+    const data: SessionData = JSON.parse(saved);
+    const lastUpdated = new Date(data.lastUpdated);
+    const now = new Date();
+    const diffMinutes = (now.getTime() - lastUpdated.getTime()) / 60000;
+    if (diffMinutes >= SESSION_EXPIRY_MINUTES) {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export function clearSessionStorage(): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(SESSION_STORAGE_KEY);
+}
+
+// Rate limiting utilities
+const AI_MESSAGE_LIMIT = 20;
+const LEAD_SUBMISSION_LIMIT = 3;
+
+interface MessageLike {
+  role: "user" | "assistant";
+}
+
+export function checkAIMessageLimit(messages: MessageLike[]): boolean {
+  const userMessageCount = messages.filter(m => m.role === "user").length;
+  return userMessageCount < AI_MESSAGE_LIMIT;
+}
+
+export function getAIMessagesRemaining(messages: MessageLike[]): number {
+  const userMessageCount = messages.filter(m => m.role === "user").length;
+  return Math.max(0, AI_MESSAGE_LIMIT - userMessageCount);
+}
+
+export function createRateLimitMessage(type: "ai" | "lead"): string {
+  if (type === "ai") {
+    return "You've reached the message limit for this session. Please email us directly at info@tomnerb.com";
+  }
+  return "You've reached the submission limit for this session. Please email us directly at info@tomnerb.com";
+}
+
+// Input sanitization for XSS prevention
+export function sanitizeInput(input: string): string {
+  return input
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+    .replace(/\//g, "&#x2F;");
+}
+
+export function formatTime(date: Date): string {
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}

@@ -2,11 +2,12 @@
 
 import { useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { Mail, Phone, CheckCircle, ArrowRight } from "lucide-react";
+import { Mail, Phone, CheckCircle, ArrowRight, AlertCircle } from "lucide-react";
 import { SectionLabel } from "../components/ui/SectionLabel";
 import { Button } from "../components/ui/Button";
 import { fadeInUp, staggerContainer } from "../lib/animations";
 import { siteConfig } from "@/app/data/siteData";
+import { AnimatedText } from "../components/effects/AnimatedText";
 
 const { contact } = siteConfig;
 
@@ -27,6 +28,16 @@ interface FormErrors {
   email?: string;
   company?: string;
   message?: string;
+  submit?: string;
+}
+
+interface ApiErrorResponse {
+  error: string;
+}
+
+interface ApiSuccessResponse {
+  success: true;
+  message: string;
 }
 
 export function Contact() {
@@ -39,6 +50,7 @@ export function Contact() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
@@ -82,6 +94,10 @@ export function Contact() {
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
+    // Clear submit error when user starts typing
+    if (submitError) {
+      setSubmitError(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,19 +106,67 @@ export function Contact() {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+    setSubmitError(null);
 
-    // Mock submission
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    console.log("Form submitted:", formData);
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          company: formData.company.trim(),
+          message: formData.message.trim(),
+        }),
+      });
 
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+      let data: ApiSuccessResponse | ApiErrorResponse;
+      
+      try {
+        data = await response.json();
+      } catch {
+        // If JSON parsing fails, treat as server error
+        throw new Error("Unable to send message. Please try again later.");
+      }
 
-    // Reset form after showing success
-    setTimeout(() => {
-      setIsSubmitted(false);
-      setFormData({ name: "", email: "", company: "", message: "" });
-    }, 3000);
+      if (!response.ok) {
+        // Handle API error response
+        const errorMessage = "error" in data && data.error 
+          ? data.error 
+          : "Unable to send message. Please try again later.";
+        throw new Error(errorMessage);
+      }
+
+      // Success
+      setIsSubmitted(true);
+
+      // Reset form after showing success
+      setTimeout(() => {
+        setIsSubmitted(false);
+        setFormData({ name: "", email: "", company: "", message: "" });
+      }, 3000);
+    } catch (error) {
+      // Handle different error types
+      let errorMessage: string;
+      
+      if (error instanceof Error) {
+        // Network errors
+        if (error.name === "TypeError" && error.message.includes("fetch")) {
+          errorMessage = "Network error. Please check your connection.";
+        } else {
+          errorMessage = error.message;
+        }
+      } else {
+        errorMessage = "Unable to send message. Please try again later.";
+      }
+      
+      setSubmitError(errorMessage);
+      console.error("Contact form submission error:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -134,15 +198,15 @@ export function Contact() {
             <SectionLabel number="" label={contact.sectionLabel} />
           </div>
 
-          {/* Headline */}
-          <motion.h2
-            variants={fadeInUp}
-            className="mt-6 text-3xl md:text-4xl lg:text-5xl font-bold"
-          >
-            <span className="bg-gradient-to-r from-text-primary via-accent to-neon bg-clip-text text-transparent">
-              {contact.headline}
-            </span>
-          </motion.h2>
+        {/* Headline */}
+        <motion.h2
+          variants={fadeInUp}
+          className="mt-6 text-3xl md:text-4xl lg:text-5xl font-bold"
+        >
+          <span className="bg-gradient-to-r from-text-primary via-accent to-neon bg-clip-text text-transparent">
+            <AnimatedText text={contact.headline} delay={0.1} />
+          </span>
+        </motion.h2>
 
           <motion.p
             variants={fadeInUp}
@@ -234,110 +298,125 @@ export function Contact() {
                 className="p-8 rounded-xl bg-surface border border-border"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {/* Name Field */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="name"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  {contact.form.fields[0].label}
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder={contact.form.fields[0].placeholder}
-                      className={`w-full px-4 py-3 rounded-lg bg-background border text-text-primary placeholder:text-text-muted focus:outline-none transition-all duration-300 focus:scale-[1.02] ${
-                        errors.name
-                          ? "border-red-500 focus:border-red-500"
-                          : "border-border focus:border-accent focus:shadow-[0_0_0_3px_rgba(79,124,255,0.2)]"
-                      }`}
-                    />
-                    {errors.name && (
-                      <p className="text-xs text-red-500">{errors.name}</p>
-                    )}
-                  </div>
-
-              {/* Email Field */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="email"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  {contact.form.fields[1].label}
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder={contact.form.fields[1].placeholder}
-                      className={`w-full px-4 py-3 rounded-lg bg-background border text-text-primary placeholder:text-text-muted focus:outline-none transition-all duration-300 focus:scale-[1.02] ${
-                        errors.email
-                          ? "border-red-500 focus:border-red-500"
-                          : "border-border focus:border-accent focus:shadow-[0_0_0_3px_rgba(79,124,255,0.2)]"
-                      }`}
-                    />
-                    {errors.email && (
-                      <p className="text-xs text-red-500">{errors.email}</p>
-                    )}
-                  </div>
-                </div>
-
-            {/* Company Field */}
-            <div className="space-y-2 mb-6">
+            {/* Name Field */}
+            <div className="space-y-2 group">
               <label
-                htmlFor="company"
-                className="text-sm font-medium text-text-primary"
+                htmlFor="name"
+                className="text-sm font-medium text-text-primary transition-colors duration-300 group-focus-within:text-accent"
               >
-                {contact.form.fields[2].label}
+                {contact.form.fields[0].label}
               </label>
               <input
                 type="text"
-                id="company"
-                name="company"
-                value={formData.company}
+                id="name"
+                name="name"
+                value={formData.name}
                 onChange={handleChange}
-                placeholder={contact.form.fields[2].placeholder}
-                    className={`w-full px-4 py-3 rounded-lg bg-background border text-text-primary placeholder:text-text-muted focus:outline-none transition-all duration-300 focus:scale-[1.02] ${
-                      errors.company
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-border focus:border-accent focus:shadow-[0_0_0_3px_rgba(79,124,255,0.2)]"
-                    }`}
-                  />
-                  {errors.company && (
-                    <p className="text-xs text-red-500">{errors.company}</p>
-                  )}
+                placeholder={contact.form.fields[0].placeholder}
+                className={`w-full px-4 py-3 rounded-lg bg-background border text-text-primary placeholder:text-text-muted focus:outline-none transition-all duration-300 focus:scale-[1.02] focus:shadow-[0_0_20px_rgba(79,124,255,0.3)] ${
+                  errors.name
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-border focus:border-accent"
+                }`}
+              />
+              {errors.name && (
+                <p className="text-xs text-red-500">{errors.name}</p>
+              )}
+            </div>
+
+            {/* Email Field */}
+            <div className="space-y-2 group">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-text-primary transition-colors duration-300 group-focus-within:text-accent"
+              >
+                {contact.form.fields[1].label}
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder={contact.form.fields[1].placeholder}
+                className={`w-full px-4 py-3 rounded-lg bg-background border text-text-primary placeholder:text-text-muted focus:outline-none transition-all duration-300 focus:scale-[1.02] focus:shadow-[0_0_20px_rgba(79,124,255,0.3)] ${
+                  errors.email
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-border focus:border-accent"
+                }`}
+              />
+              {errors.email && (
+                <p className="text-xs text-red-500">{errors.email}</p>
+              )}
+            </div>
                 </div>
 
-            {/* Message Field */}
-            <div className="space-y-2 mb-6">
-              <label
-                htmlFor="message"
-                className="text-sm font-medium text-text-primary"
+          {/* Company Field */}
+          <div className="space-y-2 mb-6 group">
+            <label
+              htmlFor="company"
+              className="text-sm font-medium text-text-primary transition-colors duration-300 group-focus-within:text-accent"
+            >
+              {contact.form.fields[2].label}
+            </label>
+            <input
+              type="text"
+              id="company"
+              name="company"
+              value={formData.company}
+              onChange={handleChange}
+              placeholder={contact.form.fields[2].placeholder}
+              className={`w-full px-4 py-3 rounded-lg bg-background border text-text-primary placeholder:text-text-muted focus:outline-none transition-all duration-300 focus:scale-[1.02] focus:shadow-[0_0_20px_rgba(79,124,255,0.3)] ${
+                errors.company
+                  ? "border-red-500 focus:border-red-500"
+                  : "border-border focus:border-accent"
+              }`}
+            />
+            {errors.company && (
+              <p className="text-xs text-red-500">{errors.company}</p>
+            )}
+          </div>
+
+          {/* Message Field */}
+          <div className="space-y-2 mb-6 group">
+            <label
+              htmlFor="message"
+              className="text-sm font-medium text-text-primary transition-colors duration-300 group-focus-within:text-accent"
+            >
+              {contact.form.fields[3].label}
+            </label>
+            <textarea
+              id="message"
+              name="message"
+              value={formData.message}
+              onChange={handleChange}
+              placeholder={contact.form.fields[3].placeholder}
+              rows={5}
+              className={`w-full px-4 py-3 rounded-lg bg-background border text-text-primary placeholder:text-text-muted focus:outline-none transition-all duration-300 resize-none focus:scale-[1.01] focus:shadow-[0_0_20px_rgba(79,124,255,0.3)] ${
+                errors.message
+                  ? "border-red-500 focus:border-red-500"
+                  : "border-border focus:border-accent"
+              }`}
+            />
+              {errors.message && (
+                <p className="text-xs text-red-500">{errors.message}</p>
+              )}
+            </div>
+
+            {/* Submit Error */}
+            {submitError && (
+              <motion.div
+                className="flex items-center gap-2 p-4 mb-6 rounded-lg bg-red-500/10 border border-red-500/30"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                role="alert"
+                aria-live="polite"
               >
-                {contact.form.fields[3].label}
-              </label>
-              <textarea
-                id="message"
-                name="message"
-                value={formData.message}
-                onChange={handleChange}
-                placeholder={contact.form.fields[3].placeholder}
-                    rows={5}
-                    className={`w-full px-4 py-3 rounded-lg bg-background border text-text-primary placeholder:text-text-muted focus:outline-none transition-all duration-300 resize-none focus:scale-[1.01] ${
-                      errors.message
-                        ? "border-red-500 focus:border-red-500"
-                        : "border-border focus:border-accent focus:shadow-[0_0_0_3px_rgba(79,124,255,0.2)]"
-                    }`}
-                  />
-                  {errors.message && (
-                    <p className="text-xs text-red-500">{errors.message}</p>
-                  )}
-                </div>
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                <p className="text-sm text-red-500">{submitError}</p>
+              </motion.div>
+            )}
 
             {/* Submit Button */}
             <Button

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { validateEmail } from "@/app/lib/chat";
+import { validateEmail, checkAIMessageLimit, createRateLimitMessage } from "@/app/lib/chat";
+import { siteConfig } from "@/app/data/siteData";
 
 const openai = new OpenAI({
   apiKey: process.env.NVIDIA_API_KEY || "",
@@ -24,23 +25,7 @@ interface ChatRequest {
   };
 }
 
-const SYSTEM_PROMPT = `You are TomNerb's friendly digital assistant. TomNerb Digital Solutions is a Cambodian startup that helps SMEs go digital through custom software, automation, and business management systems.
-
-Answer questions concisely, always in a warm and professional tone. Be helpful and encouraging.
-
-Services offered:
-- Custom Software Development (web apps, mobile apps, internal tools)
-- Business Process Automation (workflows, integrations, reduce manual work)
-- Business Management Systems (ERP, CRM, inventory, HR)
-- Digital Transformation Consulting
-
-If asked about pricing or wanting to connect with the team, collect their name and email and assure them someone will reach out within 24 hours.
-
-Contact info to share if asked:
-- Email: info@tomnerb.com
-- Phone: +855 969 983 479
-
-If you cannot answer confidently, say: "Let me connect you with our team directly — what's your email?"`;
+const SYSTEM_PROMPT = siteConfig.chat.systemPrompt;
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,6 +41,22 @@ export async function POST(request: NextRequest) {
         { error: "No user message found" },
         { status: 400 }
       );
+    }
+
+    // Check rate limiting for AI messages
+    if (mode === "ai") {
+      if (!checkAIMessageLimit(messages)) {
+        return NextResponse.json({
+          message: {
+            role: "assistant" as const,
+            content: createRateLimitMessage("ai"),
+          },
+          mode: "ai",
+          leadStep: undefined,
+          leadData: leadData || {},
+          rateLimited: true,
+        });
+      }
     }
 
     const userContent = lastUserMessage.content;
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function handleLeadCapture(
+async function handleLeadCapture(
   step: "name" | "email" | "message" | "complete",
   userContent: string,
   leadData?: { name?: string; email?: string }
@@ -175,12 +176,28 @@ function handleLeadCapture(
 
     case "message": {
       const message = userContent.trim();
-      // Log lead for follow-up (in production, save to database)
-      console.log("Lead captured:", {
-        ...leadData,
-        message,
-        timestamp: new Date().toISOString(),
-      });
+      // Submit lead to /api/lead endpoint
+      if (leadData?.name && leadData?.email) {
+        try {
+          const leadResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/lead`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: leadData.name,
+              email: leadData.email,
+              message: message,
+              timestamp: new Date().toISOString(),
+            }),
+          });
+          if (!leadResponse.ok) {
+            console.error("Failed to submit lead:", await leadResponse.text());
+          }
+        } catch (leadError) {
+          console.error("Error submitting lead:", leadError);
+        }
+      }
       return NextResponse.json({
         message: {
           role: "assistant" as const,

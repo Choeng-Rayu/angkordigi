@@ -7,6 +7,7 @@ import { SectionLabel } from "../components/ui/SectionLabel";
 import { Card } from "../components/ui/Card";
 import { fadeInUp, staggerContainer } from "../lib/animations";
 import { siteConfig } from "@/app/data/siteData";
+import { MagneticButton } from "../components/effects/MagneticButton";
 
 const { team } = siteConfig;
 
@@ -54,69 +55,71 @@ function TeamMemberCard({
         ease: [0.25, 0.1, 0.25, 1],
       }}
     >
-      <motion.div
-        whileHover={{ y: -4 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Card
-          variant="default"
-          className="group relative overflow-hidden text-center"
+      <MagneticButton strength={0.1}>
+        <motion.div
+          whileHover={{ y: -4 }}
+          transition={{ duration: 0.3 }}
         >
-          {/* Avatar with rotating gradient border */}
-          <div className="relative mx-auto mb-5 w-[120px] h-[120px]">
-            {/* Rotating gradient border */}
-            <motion.div
-              className="absolute -inset-0.5 rounded-full"
-              style={{
-                background: "linear-gradient(90deg, #4F7CFF, #00FFC2, #4F7CFF)",
-                backgroundSize: "200% 100%",
-              }}
-              whileHover={{
-                backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-              }}
-              transition={{
-                duration: 2,
-                ease: "linear",
-                repeat: Infinity,
-              }}
-            />
-
-            {/* Avatar container */}
-            <div className="absolute inset-0.5 rounded-full bg-surface overflow-hidden">
-              <motion.div
-                className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center`}
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.3 }}
-              >
-                <span className="text-3xl font-bold text-white">
-                  {initials}
-                </span>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* Name */}
-          <h3 className="text-xl font-semibold text-text-primary mb-1 group-hover:text-accent transition-colors duration-300">
-            {member.name}
-          </h3>
-
-          {/* Role */}
-          <p className="font-mono text-sm text-neon mb-4">{member.role}</p>
-
-          {/* LinkedIn icon */}
-          <motion.a
-            href={member.linkedin}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-surface border border-border text-text-muted hover:text-accent hover:border-accent/50 transition-all duration-300 opacity-0 group-hover:opacity-100"
-            initial={false}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+          <Card
+            variant="default"
+            className="group relative overflow-hidden text-center cursor-pointer"
           >
-            <Linkedin className="w-4 h-4" />
-          </motion.a>
-        </Card>
-      </motion.div>
+            {/* Avatar with rotating gradient border */}
+            <div className="relative mx-auto mb-5 w-[120px] h-[120px]">
+              {/* Rotating gradient border */}
+              <motion.div
+                className="absolute -inset-0.5 rounded-full"
+                style={{
+                  background: "linear-gradient(90deg, #4F7CFF, #00FFC2, #4F7CFF)",
+                  backgroundSize: "200% 100%",
+                }}
+                whileHover={{
+                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                }}
+                transition={{
+                  duration: 2,
+                  ease: "linear",
+                  repeat: Infinity,
+                }}
+              />
+
+              {/* Avatar container */}
+              <div className="absolute inset-0.5 rounded-full bg-surface overflow-hidden">
+                <motion.div
+                  className={`w-full h-full bg-gradient-to-br ${gradientClass} flex items-center justify-center`}
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <span className="text-3xl font-bold text-white">
+                    {initials}
+                  </span>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Name */}
+            <h3 className="text-xl font-semibold text-text-primary mb-1 group-hover:text-accent transition-colors duration-300">
+              {member.name}
+            </h3>
+
+            {/* Role */}
+            <p className="font-mono text-sm text-neon mb-4">{member.role}</p>
+
+            {/* LinkedIn icon */}
+            <motion.a
+              href={member.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-surface border border-border text-text-muted hover:text-accent hover:border-accent/50 transition-all duration-300 opacity-0 group-hover:opacity-100"
+              initial={false}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Linkedin className="w-4 h-4" />
+            </motion.a>
+          </Card>
+        </motion.div>
+      </MagneticButton>
     </motion.div>
   );
 }

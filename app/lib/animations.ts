@@ -1,6 +1,7 @@
 "use client";
 
-import { Variants } from "framer-motion";
+import { Variants, Transition } from "framer-motion";
+import { useReducedMotion } from "./hooks/useReducedMotion";
 
 export const fadeInUp: Variants = {
   hidden: {
@@ -148,3 +149,165 @@ export const springTransition = {
   stiffness: 300,
   damping: 30,
 };
+
+// =============================================================================
+// ACCESSIBLE ANIMATION UTILITIES
+// =============================================================================
+
+/**
+ * Hook that returns animation variants respecting reduced motion preference
+ * When reduced motion is preferred, returns instant animations (duration: 0.01)
+ * Otherwise returns the normal animations
+ */
+export function useAccessibleAnimations(animations: Variants): Variants {
+  const prefersReducedMotion = useReducedMotion();
+
+  if (!prefersReducedMotion) {
+    return animations;
+  }
+
+  // Create reduced motion variants by stripping animations
+  const reducedVariants: Variants = {};
+
+  for (const key in animations) {
+    const variant = animations[key];
+
+    if (key === "hidden") {
+      reducedVariants[key] = { opacity: 0 };
+    } else if (key === "visible") {
+      reducedVariants[key] = {
+        opacity: 1,
+        transition: { duration: 0.01 },
+      };
+    } else if (key === "initial") {
+      reducedVariants[key] = variant as Variants["initial"];
+    } else if (key === "animate") {
+      reducedVariants[key] = {
+        ...(variant as Record<string, unknown>),
+        transition: { duration: 0.01 },
+      } as Variants["animate"];
+    } else {
+      // For other keys, keep them but with minimal transition
+      reducedVariants[key] = variant as Variants[string];
+    }
+  }
+
+  return reducedVariants;
+}
+
+/**
+ * Higher-order function that wraps any variant to respect reduced motion
+ * Returns a function that can be used as a hook
+ */
+export function withReducedMotion(variants: Variants): () => Variants {
+  return function useReducedMotionVariant(): Variants {
+    const prefersReducedMotion = useReducedMotion();
+
+    if (!prefersReducedMotion) {
+      return variants;
+    }
+
+  // Create reduced motion variants
+  const reducedVariants: Variants = {};
+
+  for (const key in variants) {
+    const variant = variants[key];
+
+    if (key === "hidden") {
+      reducedVariants[key] = { opacity: 0 };
+    } else if (key === "visible") {
+      reducedVariants[key] = {
+        opacity: 1,
+        transition: { duration: 0.01 },
+      };
+    } else if (key === "initial") {
+      reducedVariants[key] = variant as Variants["initial"];
+    } else if (key === "animate") {
+      reducedVariants[key] = {
+        ...(variant as Record<string, unknown>),
+        transition: { duration: 0.01 },
+      } as Variants["animate"];
+    } else {
+      reducedVariants[key] = variant as Variants[string];
+    }
+  }
+
+  return reducedVariants;
+};
+}
+
+/**
+ * Hook for accessible fade in animation
+ */
+export function useAccessibleFadeIn(): Variants {
+  return useAccessibleAnimations(fadeIn);
+}
+
+/**
+ * Hook for accessible fade in up animation
+ */
+export function useAccessibleFadeInUp(): Variants {
+  return useAccessibleAnimations(fadeInUp);
+}
+
+/**
+ * Hook for accessible stagger animation
+ * Takes stagger delay and delay children as parameters
+ */
+export function useAccessibleStagger(
+  staggerChildren: number = 0.08,
+  delayChildren: number = 0.1
+): Variants {
+  const prefersReducedMotion = useReducedMotion();
+
+  if (prefersReducedMotion) {
+    return {
+      hidden: { opacity: 0 },
+      visible: {
+        opacity: 1,
+        transition: {
+          staggerChildren: 0.01,
+          delayChildren: 0.01,
+        },
+      },
+    };
+  }
+
+  return {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren,
+        delayChildren,
+      },
+    },
+  };
+}
+
+/**
+ * Transition config that respects reduced motion
+ * Returns a transition object with duration 0.01 if reduced motion is preferred
+ */
+export function accessibleTransition(
+  transition: Transition
+): Transition {
+  // This function is designed to be used within a component that calls useReducedMotion
+  // Since hooks can only be called within components, we return the transition as-is
+  // Components should use useReducedMotion() directly to conditionally apply transitions
+  return transition;
+}
+
+/**
+ * Hook that returns a transition config respecting reduced motion preference
+ * Use this inside components to get the appropriate transition
+ */
+export function useAccessibleTransition(transition: Transition): Transition {
+  const prefersReducedMotion = useReducedMotion();
+
+  if (prefersReducedMotion) {
+    return { duration: 0.01 };
+  }
+
+  return transition;
+}

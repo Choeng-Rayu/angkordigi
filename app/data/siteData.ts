@@ -13,7 +13,6 @@ export const siteConfig = {
       { label: "Services", href: "#services" },
       { label: "Team", href: "#team" },
       { label: "Timeline", href: "#timeline" },
-      { label: "Dragon", href: "/dragon" },
     ],
     cta: { label: "Contact Us", href: "#contact" },
   },

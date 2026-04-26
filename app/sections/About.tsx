@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { SectionLabel } from "../components/ui/SectionLabel";
 import { slideInLeft, slideInRight } from "../lib/animations";
 import { siteConfig } from "@/app/data/siteData";
+import { AnimatedText } from "../components/effects/AnimatedText";
+import { GlowBorder } from "../components/effects/GlowBorder";
 
 const { about } = siteConfig;
 
@@ -26,7 +28,7 @@ export function About() {
           <SectionLabel number="" label={about.sectionLabel} />
 
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight">
-            {about.headline}
+            <AnimatedText text={about.headline} delay={0.2} />
           </h2>
 
           <p className="text-text-muted text-lg leading-[1.65] max-w-xl">
@@ -39,22 +41,16 @@ export function About() {
           </div>
           </motion.div>
 
-          {/* Right Column - Cambodia Map */}
-          <motion.div
-            variants={slideInRight}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="relative flex items-center justify-center lg:justify-end"
-          >
-            <div className="relative">
-              {/* Glow effect behind map */}
-              <div className="absolute inset-0 blur-3xl opacity-20">
-                <div className="w-full h-full bg-gradient-to-br from-accent via-neon to-accent" />
-              </div>
-
-              {/* Map Container */}
-              <div className="relative bg-surface/50 border border-border rounded-2xl p-8 md:p-12">
+      {/* Right Column - Cambodia Map */}
+      <motion.div
+        variants={slideInRight}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        className="relative flex items-center justify-center lg:justify-end"
+      >
+        <GlowBorder glowIntensity="medium" className="w-full max-w-md">
+          <div className="relative bg-surface/50 p-8 md:p-12">
                 {/* Cambodia Map SVG */}
                 <svg
                   viewBox="0 0 200 280"
@@ -149,13 +145,13 @@ export function About() {
             </text>
                 </svg>
 
-                {/* Decorative elements */}
-                <div className="absolute top-4 right-4 w-2 h-2 bg-accent rounded-full opacity-60" />
-                <div className="absolute bottom-4 left-4 w-3 h-3 border border-neon rounded-full opacity-40" />
-                <div className="absolute top-1/2 left-2 w-1 h-8 bg-gradient-to-b from-accent to-transparent rounded-full opacity-30" />
-              </div>
-            </div>
-          </motion.div>
+          {/* Decorative elements */}
+          <div className="absolute top-4 right-4 w-2 h-2 bg-accent rounded-full opacity-60" />
+          <div className="absolute bottom-4 left-4 w-3 h-3 border border-neon rounded-full opacity-40" />
+          <div className="absolute top-1/2 left-2 w-1 h-8 bg-gradient-to-b from-accent to-transparent rounded-full opacity-30" />
+          </div>
+        </GlowBorder>
+      </motion.div>
         </div>
       </div>
     </section>
