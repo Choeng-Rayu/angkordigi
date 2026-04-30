@@ -3,6 +3,7 @@ import { About } from "./sections/About";
 import { VisionMissionGoal } from "./sections/VisionMissionGoal";
 import { Timeline } from "./sections/Timeline";
 import { Services } from "./sections/Services";
+import { SolarSystem } from "./sections/SolarSystem";
 import { Team } from "./sections/Team";
 import { Contact } from "./sections/Contact";
 import { Footer } from "./components/layout/Footer";
@@ -15,8 +16,9 @@ export default function Home() {
       <About />
       <VisionMissionGoal />
       <Timeline />
-      <Services />
-      <Team />
+<Services />
+<SolarSystem />
+<Team />
       <Contact />
       <Footer />
       <BackToTop />
